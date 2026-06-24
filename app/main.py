@@ -10,8 +10,6 @@ from app.config import settings, BASE_DIR
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Инициализация БД при старте
-    await init_db()
     yield
 
 app = FastAPI(
