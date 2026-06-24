@@ -3,8 +3,9 @@ from sqlalchemy.orm import DeclarativeBase
 from app.config import settings
 
 DATABASE_URL = settings.DATABASE_URL
-if not "asyncpg" in DATABASE_URL:
+if "postgresql+psycopg2://" in DATABASE_URL:
     DATABASE_URL = DATABASE_URL.replace("postgresql+psycopg2://", "postgresql+asyncpg://")
+elif DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
 
 engine = create_async_engine(
@@ -18,6 +19,7 @@ engine = create_async_engine(
     connect_args={
         "statement_cache_size": 0,
         "prepared_statement_cache_size": 0,
+        "server_settings": {"jit": "off"},
     },
 )
 
