@@ -2,17 +2,19 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 from sqlalchemy.orm import DeclarativeBase
 from app.config import settings
 
-DATABASE_URL = settings.DATABASE_URL.replace(
-    "postgresql+psycopg2://", "postgresql+asyncpg://"
-).replace(
-    "postgresql://", "postgresql+asyncpg://"
-)
+DATABASE_URL = settings.DATABASE_URL
+if not "asyncpg" in DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.replace("postgresql+psycopg2://", "postgresql+asyncpg://")
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
 
 engine = create_async_engine(
     DATABASE_URL,
     echo=settings.DEBUG,
-    pool_size=5,
-    max_overflow=10,
+    pool_size=2,
+    max_overflow=3,
+    pool_timeout=60,
+    pool_recycle=600,
+    pool_pre_ping=False,
     connect_args={
         "statement_cache_size": 0,
         "prepared_statement_cache_size": 0,
