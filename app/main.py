@@ -4,7 +4,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.api import api_router
-from app.database import init_db
 from app.config import settings, BASE_DIR
 
 
