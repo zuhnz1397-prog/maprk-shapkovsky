@@ -42,6 +42,20 @@ async def health():
     return {"status": "ok", "service": "maprk-shapkovsky"}
 
 
+@app.get("/api/debug/storage")
+def debug_storage():
+    try:
+        from app.config import settings
+        import httpx
+        url = f"{settings.SUPABASE_URL}/storage/v1/bucket"
+        headers = {"Authorization": f"Bearer {settings.SUPABASE_SERVICE_KEY}"}
+        r = httpx.get(url, headers=headers, timeout=10)
+        return {"status": r.status_code, "body": r.json()}
+    except Exception as e:
+        import traceback
+        return {"status": "error", "error": str(e), "trace": traceback.format_exc()}
+
+
 @app.get("/api/debug")
 def debug_db():
     try:
