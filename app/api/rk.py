@@ -49,6 +49,38 @@ async def get_stats(
     return RKService.get_stats(db)
 
 
+# ─── Экспорт документов (должны быть ДО /{pk} чтобы FastAPI не матчил "export" как int) ──
+
+@router.get("/export/pdf", summary="Экспорт реестра в PDF")
+async def export_pdf(
+    db: AsyncSession = Depends(get_db),
+    _: str = Depends(get_current_admin),
+):
+    _, rks = RKService.get_all(db, limit=10000)
+    pdf_bytes = generate_registry_pdf(rks)
+    filename = f"reestr_RK_Shpakovsky_{__import__('datetime').date.today()}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
+@router.get("/export/docx", summary="Экспорт реестра в Word")
+async def export_docx(
+    db: AsyncSession = Depends(get_db),
+    _: str = Depends(get_current_admin),
+):
+    _, rks = RKService.get_all(db, limit=10000)
+    docx_bytes = generate_registry_docx(rks)
+    filename = f"reestr_RK_Shpakovsky_{__import__('datetime').date.today()}.docx"
+    return Response(
+        content=docx_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
 @router.get("/{pk}", response_model=RKOut, summary="Одна РК по id")
 async def get_rk(
     pk: int,
@@ -64,13 +96,7 @@ async def create_rk(
     db: AsyncSession = Depends(get_db),
     _: str = Depends(get_current_admin),
 ):
-    rk = RKService.create(db, data)
-    # Автоматически генерируем паспорт без фото
-    passport_bytes = generate_passport_pdf(rk)
-    passport_path = settings.PASSPORTS_DIR / f"{rk.rk_id}.pdf"
-    passport_path.write_bytes(passport_bytes)
-    rk = RKService.update_files(db, rk.id, passport_path=str(passport_path))
-    return rk
+    return RKService.create(db, data)
 
 
 @router.put("/{pk}", response_model=RKOut, summary="Обновить данные РК")
@@ -80,13 +106,7 @@ async def update_rk(
     db: AsyncSession = Depends(get_db),
     _: str = Depends(get_current_admin),
 ):
-    rk = RKService.update(db, pk, data)
-    # Перегенерируем паспорт
-    passport_bytes = generate_passport_pdf(rk)
-    passport_path = settings.PASSPORTS_DIR / f"{rk.rk_id}.pdf"
-    passport_path.write_bytes(passport_bytes)
-    rk = RKService.update_files(db, pk, passport_path=str(passport_path))
-    return rk
+    return RKService.update(db, pk, data)
 
 
 @router.delete("/{pk}", status_code=204, summary="Удалить РК (soft delete)")
@@ -95,7 +115,7 @@ async def delete_rk(
     db: AsyncSession = Depends(get_db),
     _: str = Depends(get_current_admin),
 ):
-    await RKService.delete(db, pk)
+    RKService.delete(db, pk)
 
 
 # ─── Загрузка файлов ─────────────────────────────────────────────────────────
@@ -108,13 +128,7 @@ async def upload_photo(
     _: str = Depends(get_current_admin),
 ):
     path = await save_photo(file)
-    rk = RKService.update_files(db, pk, photo_path=path)
-    # Перегенерируем паспорт с фото
-    passport_bytes = generate_passport_pdf(rk)
-    passport_path = settings.PASSPORTS_DIR / f"{rk.rk_id}.pdf"
-    passport_path.write_bytes(passport_bytes)
-    rk = RKService.update_files(db, pk, passport_path=str(passport_path))
-    return rk
+    return RKService.update_files(db, pk, photo_path=path)
 
 
 @router.post("/{pk}/scheme", response_model=RKOut, summary="Загрузить схему расположения")
@@ -125,45 +139,7 @@ async def upload_scheme(
     _: str = Depends(get_current_admin),
 ):
     path = await save_scheme(file)
-    rk = RKService.update_files(db, pk, scheme_path=path)
-    # Перегенерируем паспорт со схемой
-    passport_bytes = generate_passport_pdf(rk)
-    passport_path = settings.PASSPORTS_DIR / f"{rk.rk_id}.pdf"
-    passport_path.write_bytes(passport_bytes)
-    rk = RKService.update_files(db, pk, passport_path=str(passport_path))
-    return rk
-
-
-# ─── Экспорт документов ──────────────────────────────────────────────────────
-
-@router.get("/export/pdf", summary="Экспорт реестра в PDF")
-async def export_pdf(
-    db: AsyncSession = Depends(get_db),
-    _: str = Depends(get_current_admin),
-):
-    _, rks = RKService.get_all(db, limit=10000)
-    pdf_bytes = generate_registry_pdf(rks)
-    filename = f"реестр_РК_Шпаковский_{__import__('datetime').date.today()}.pdf"
-    return Response(
-        content=pdf_bytes,
-        media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
-    )
-
-
-@router.get("/export/docx", summary="Экспорт реестра в Word")
-async def export_docx(
-    db: AsyncSession = Depends(get_db),
-    _: str = Depends(get_current_admin),
-):
-    _, rks = RKService.get_all(db, limit=10000)
-    docx_bytes = generate_registry_docx(rks)
-    filename = f"реестр_РК_Шпаковский_{__import__('datetime').date.today()}.docx"
-    return Response(
-        content=docx_bytes,
-        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
-    )
+    return RKService.update_files(db, pk, scheme_path=path)
 
 
 @router.post("/{pk}/passport/upload", response_model=RKOut, summary="Загрузить оригинальный PDF паспорта")
