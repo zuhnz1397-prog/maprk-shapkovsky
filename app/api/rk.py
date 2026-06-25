@@ -22,7 +22,7 @@ router = APIRouter(prefix="/rk", tags=["rk"])
 @router.get("/map", summary="Все РК для карты (лёгкий JSON)")
 async def get_map_data(db: AsyncSession = Depends(get_db)):
     """Оптимизированный endpoint — только нужные поля для отображения на карте"""
-    return await RKService.get_map_data(db)
+    return RKService.get_map_data(db)
 
 
 # ─── Endpoints с авторизацией (админка) ──────────────────────────────────────
@@ -36,7 +36,7 @@ async def list_rk(
     db: AsyncSession = Depends(get_db),
     _: str = Depends(get_current_admin),
 ):
-    total, items = await RKService.get_all(db, skip, limit, type_rk, search)
+    total, items = RKService.get_all(db, skip, limit, type_rk, search)
     return {"total": total, "items": items}
 
 
@@ -45,7 +45,7 @@ async def get_stats(
     db: AsyncSession = Depends(get_db),
     _: str = Depends(get_current_admin),
 ):
-    return await RKService.get_stats(db)
+    return RKService.get_stats(db)
 
 
 @router.get("/{rk_id}", response_model=RKOut, summary="Одна РК по номеру")
@@ -54,7 +54,7 @@ async def get_rk(
     db: AsyncSession = Depends(get_db),
     _: str = Depends(get_current_admin),
 ):
-    return await RKService.get_by_id(db, rk_id)
+    return RKService.get_by_id(db, rk_id)
 
 
 @router.post("/", response_model=RKOut, status_code=201, summary="Создать РК")
@@ -63,12 +63,12 @@ async def create_rk(
     db: AsyncSession = Depends(get_db),
     _: str = Depends(get_current_admin),
 ):
-    rk = await RKService.create(db, data)
+    rk = RKService.create(db, data)
     # Автоматически генерируем паспорт без фото
     passport_bytes = generate_passport_pdf(rk)
     passport_path = settings.PASSPORTS_DIR / f"{rk.rk_id}.pdf"
     passport_path.write_bytes(passport_bytes)
-    rk = await RKService.update_files(db, rk.id, passport_path=str(passport_path))
+    rk = RKService.update_files(db, rk.id, passport_path=str(passport_path))
     return rk
 
 
@@ -79,12 +79,12 @@ async def update_rk(
     db: AsyncSession = Depends(get_db),
     _: str = Depends(get_current_admin),
 ):
-    rk = await RKService.update(db, pk, data)
+    rk = RKService.update(db, pk, data)
     # Перегенерируем паспорт
     passport_bytes = generate_passport_pdf(rk)
     passport_path = settings.PASSPORTS_DIR / f"{rk.rk_id}.pdf"
     passport_path.write_bytes(passport_bytes)
-    rk = await RKService.update_files(db, pk, passport_path=str(passport_path))
+    rk = RKService.update_files(db, pk, passport_path=str(passport_path))
     return rk
 
 
@@ -107,12 +107,12 @@ async def upload_photo(
     _: str = Depends(get_current_admin),
 ):
     path = await save_photo(file)
-    rk = await RKService.update_files(db, pk, photo_path=path)
+    rk = RKService.update_files(db, pk, photo_path=path)
     # Перегенерируем паспорт с фото
     passport_bytes = generate_passport_pdf(rk)
     passport_path = settings.PASSPORTS_DIR / f"{rk.rk_id}.pdf"
     passport_path.write_bytes(passport_bytes)
-    rk = await RKService.update_files(db, pk, passport_path=str(passport_path))
+    rk = RKService.update_files(db, pk, passport_path=str(passport_path))
     return rk
 
 
@@ -124,12 +124,12 @@ async def upload_scheme(
     _: str = Depends(get_current_admin),
 ):
     path = await save_scheme(file)
-    rk = await RKService.update_files(db, pk, scheme_path=path)
+    rk = RKService.update_files(db, pk, scheme_path=path)
     # Перегенерируем паспорт со схемой
     passport_bytes = generate_passport_pdf(rk)
     passport_path = settings.PASSPORTS_DIR / f"{rk.rk_id}.pdf"
     passport_path.write_bytes(passport_bytes)
-    rk = await RKService.update_files(db, pk, passport_path=str(passport_path))
+    rk = RKService.update_files(db, pk, passport_path=str(passport_path))
     return rk
 
 
@@ -140,7 +140,7 @@ async def export_pdf(
     db: AsyncSession = Depends(get_db),
     _: str = Depends(get_current_admin),
 ):
-    _, rks = await RKService.get_all(db, limit=10000)
+    _, rks = RKService.get_all(db, limit=10000)
     pdf_bytes = generate_registry_pdf(rks)
     filename = f"реестр_РК_Шпаковский_{__import__('datetime').date.today()}.pdf"
     return Response(
@@ -155,7 +155,7 @@ async def export_docx(
     db: AsyncSession = Depends(get_db),
     _: str = Depends(get_current_admin),
 ):
-    _, rks = await RKService.get_all(db, limit=10000)
+    _, rks = RKService.get_all(db, limit=10000)
     docx_bytes = generate_registry_docx(rks)
     filename = f"реестр_РК_Шпаковский_{__import__('datetime').date.today()}.docx"
     return Response(
@@ -171,7 +171,7 @@ async def download_passport(
     db: AsyncSession = Depends(get_db),
     _: str = Depends(get_current_admin),
 ):
-    rk = await RKService.get_by_pk(db, pk)
+    rk = RKService.get_by_pk(db, pk)
     pdf_bytes = generate_passport_pdf(rk)
     filename = f"паспорт_{rk.rk_id}.pdf"
     return Response(
