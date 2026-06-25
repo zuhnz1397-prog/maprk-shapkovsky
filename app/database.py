@@ -1,47 +1,39 @@
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase
 from app.config import settings
 
 DATABASE_URL = settings.DATABASE_URL
-if "postgresql+psycopg2://" in DATABASE_URL:
-    DATABASE_URL = DATABASE_URL.replace("postgresql+psycopg2://", "postgresql+asyncpg://")
-elif DATABASE_URL.startswith("postgresql://"):
-    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+DATABASE_URL = DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
+DATABASE_URL = DATABASE_URL.replace("postgresql+psycopg2://", "postgresql://")
 
-engine = create_async_engine(
+engine = create_engine(
     DATABASE_URL,
-    echo=False,
-    pool_size=1,
-    max_overflow=0,
+    pool_size=2,
+    max_overflow=3,
     pool_timeout=30,
-    pool_recycle=1800,
-    pool_pre_ping=False,
-    connect_args={
-        "statement_cache_size": 0,
-        "prepared_statement_cache_size": 0,
-    },
+    pool_recycle=600,
+    pool_pre_ping=True,
+    connect_args={"sslmode": "require"},
 )
 
-AsyncSessionLocal = async_sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
+SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+
 
 class Base(DeclarativeBase):
     pass
 
-async def get_db():
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
 
-async def init_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+def init_db():
+    Base.metadata.create_all(bind=engine)
