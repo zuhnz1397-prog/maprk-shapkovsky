@@ -10,16 +10,15 @@ elif DATABASE_URL.startswith("postgresql://"):
 
 engine = create_async_engine(
     DATABASE_URL,
-    echo=settings.DEBUG,
-    pool_size=2,
-    max_overflow=3,
-    pool_timeout=60,
-    pool_recycle=600,
+    echo=False,
+    pool_size=1,
+    max_overflow=0,
+    pool_timeout=30,
+    pool_recycle=1800,
     pool_pre_ping=False,
     connect_args={
         "statement_cache_size": 0,
         "prepared_statement_cache_size": 0,
-        "server_settings": {"jit": "off"},
     },
 )
 
