@@ -11,6 +11,7 @@ from app.services.upload_service import save_photo, save_scheme, save_passport
 from app.services.export_service import (
     generate_registry_pdf, generate_registry_docx, generate_passport_pdf
 )
+from app.services.storage_service import upload_passport as storage_upload_passport
 from app.utils.auth import get_current_admin
 from app.config import settings
 
@@ -163,6 +164,20 @@ async def export_docx(
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
+
+
+@router.post("/{pk}/passport/upload", response_model=RKOut, summary="Загрузить оригинальный PDF паспорта")
+async def upload_passport_pdf(
+    pk: int,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    _: str = Depends(get_current_admin),
+):
+    rk = RKService.get_by_pk(db, pk)
+    pdf_bytes = await file.read()
+    public_url = storage_upload_passport(rk.rk_id, pdf_bytes)
+    rk = RKService.update_files(db, pk, passport_path=public_url)
+    return rk
 
 
 @router.get("/{pk}/passport/pdf", summary="Паспорт одной РК в PDF")

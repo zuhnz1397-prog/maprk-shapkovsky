@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     MAX_UPLOAD_SIZE: int = 10 * 1024 * 1024  # 10 MB
 
+    SUPABASE_URL: str = ""
+    SUPABASE_SERVICE_KEY: str = ""
+    SUPABASE_BUCKET: str = "passports"
+
     UPLOAD_DIR: Path = BASE_DIR / "static" / "uploads"
     PHOTOS_DIR: Path = UPLOAD_DIR / "photos"
     SCHEMES_DIR: Path = UPLOAD_DIR / "schemes"
