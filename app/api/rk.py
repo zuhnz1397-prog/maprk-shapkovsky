@@ -48,13 +48,13 @@ async def get_stats(
     return RKService.get_stats(db)
 
 
-@router.get("/{rk_id}", response_model=RKOut, summary="Одна РК по номеру")
+@router.get("/{pk}", response_model=RKOut, summary="Одна РК по id")
 async def get_rk(
-    rk_id: str,
+    pk: int,
     db: AsyncSession = Depends(get_db),
     _: str = Depends(get_current_admin),
 ):
-    return RKService.get_by_id(db, rk_id)
+    return RKService.get_by_pk(db, pk)
 
 
 @router.post("/", response_model=RKOut, status_code=201, summary="Создать РК")
