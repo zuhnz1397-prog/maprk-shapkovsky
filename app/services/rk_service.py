@@ -123,6 +123,7 @@ class RKService:
                 "lon": rk.lon,
                 "note": (rk.note or "")[:200],
                 "has_passport": bool(rk.passport_path),
+                "passport_path": rk.passport_path or None,
                 "has_photo": bool(rk.photo_path),
             }
             for rk in rks
